@@ -6,7 +6,8 @@ import subprocess
 from typing import List, Dict, Any
 from youtube_search import YoutubeSearch
 
-DOWNLOAD_HISTORY_FILE = "download_history.json"
+DOWNLOAD_HISTORY_FILE = "./download_history.json"
+DESTINATION_FOLDER = "./musicarr_downloads"
 
 
 def load_download_history() -> List[Dict[str, Any]]:
@@ -122,6 +123,8 @@ def download_with_ytdlp(
         codec,
         "--audio-quality",
         quality,
+        "--output",
+        f"{DESTINATION_FOLDER}/%(artist)s - %(title)s.%(ext)s",
         deezer_url,
     ]
     try:
