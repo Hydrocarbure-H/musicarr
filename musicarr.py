@@ -18,6 +18,9 @@ def load_download_history() -> List[Dict[str, Any]]:
     """
     try:
         with open(DOWNLOAD_HISTORY_FILE, "r") as f:
+            if os.stat(DOWNLOAD_HISTORY_FILE).st_size == 0:
+                os.system("echo {} > " + DOWNLOAD_HISTORY_FILE)
+                return []
             return json.load(f)
     except FileNotFoundError:
         os.system("echo {} > " + DOWNLOAD_HISTORY_FILE)
