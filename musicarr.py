@@ -1,10 +1,59 @@
 import json
+import os
 import requests
 import datetime
 import subprocess
 from typing import List, Dict, Any
 from youtube_search import YoutubeSearch
-import sys
+
+DOWNLOAD_HISTORY_FILE = "download_history.json"
+
+
+def load_download_history() -> List[Dict[str, Any]]:
+    """
+    Loads the download history from the JSON file.
+
+    :return: List of previously downloaded tracks.
+    """
+    try:
+        with open(DOWNLOAD_HISTORY_FILE, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        os.system(f"touch {DOWNLOAD_HISTORY_FILE}")
+        return []
+
+
+def save_download_history(downloaded_tracks: List[Dict[str, Any]]):
+    """
+    Saves the download history to the JSON file.
+
+    :param downloaded_tracks: List of tracks to save.
+    """
+    with open(DOWNLOAD_HISTORY_FILE, "w") as f:
+        json.dump(downloaded_tracks, f)
+
+
+def filter_new_tracks(
+    trending_tracks: List[Dict[str, Any]],
+    download_history: List[Dict[str, Any]],
+    limit: int = 10,
+) -> List[Dict[str, Any]]:
+    """
+    Filters out already downloaded tracks and returns a list of new tracks to download.
+
+    :param trending_tracks: List of trending tracks from Spotify.
+    :param download_history: List of previously downloaded tracks.
+    :param limit: The number of new tracks to download.
+    :return: List of new tracks to download.
+    """
+    downloaded_set = {(track["title"], track["artist"]) for track in download_history}
+    new_tracks = [
+        track
+        for track in trending_tracks
+        if (track["title"], track["artist"]) not in downloaded_set
+    ]
+    return new_tracks[:limit]
+
 
 def get_genre_id() -> int:
     """
@@ -29,7 +78,7 @@ def get_genre_id() -> int:
     return genres.get(current_day)
 
 
-def get_deezer_genre_tracks(limit: int = 10, index: int = 0) -> List[Dict[str, Any]]:
+def get_deezer_genre_tracks(limit: int = 50, index: int = 0) -> List[Dict[str, Any]]:
     """
     Retrieves the trending tracks for a specific genre from Deezer.
 
@@ -86,16 +135,22 @@ if __name__ == "__main__":
     # Get trending tracks based on today's genre
     trending_tracks: List[Dict[str, Any]] = get_deezer_genre_tracks()
 
+    # Load download history
+    download_history = load_download_history()
+
+    # Filter out already downloaded tracks and only take the first 10
+    new_tracks = filter_new_tracks(trending_tracks, download_history, limit=10)
+
     # Get the youtube urls for the trending tracks
     youtube_urls = []
-    for track in trending_tracks:
+    for track in new_tracks:
         try:
             video = json.loads(
                 YoutubeSearch(
                     track["title"] + " " + track["artist"], max_results=1
                 ).to_json()
             )
-            
+
             url = (
                 "https://www.youtube.com/"
                 + video.get("videos")[0].get("url_suffix")
