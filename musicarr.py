@@ -20,7 +20,7 @@ def load_download_history() -> List[Dict[str, Any]]:
         with open(DOWNLOAD_HISTORY_FILE, "r") as f:
             return json.load(f)
     except FileNotFoundError:
-        os.system(f"touch {DOWNLOAD_HISTORY_FILE}")
+        os.system("echo {} > " + DOWNLOAD_HISTORY_FILE)
         return []
 
 
@@ -30,6 +30,12 @@ def save_download_history(downloaded_tracks: List[Dict[str, Any]]):
 
     :param downloaded_tracks: List of tracks to save.
     """
+    # Get the existing download history
+    existing_history = load_download_history()
+    
+    # Append the new tracks to the existing history
+    downloaded_tracks.extend(existing_history)
+    
     with open(DOWNLOAD_HISTORY_FILE, "w") as f:
         json.dump(downloaded_tracks, f)
 
@@ -124,7 +130,7 @@ def download_with_ytdlp(
         "--audio-quality",
         quality,
         "--output",
-        f"{DESTINATION_FOLDER}/%(artist)s - %(title)s.%(ext)s",
+        f"{DESTINATION_FOLDER}/%(title)s.%(ext)s",
         deezer_url,
     ]
     try:
@@ -143,6 +149,9 @@ if __name__ == "__main__":
 
     # Filter out already downloaded tracks and only take the first 10
     new_tracks = filter_new_tracks(trending_tracks, download_history, limit=10)
+    
+    # Save the download history
+    save_download_history(new_tracks)
 
     # Get the youtube urls for the trending tracks
     youtube_urls = []
